@@ -8,7 +8,7 @@ import { SourceSnapshot, WorklogFlow, WorklogReview } from './Workflow';
 import { canRead, canWrite } from './permissions';
 
 export default function RecordDetails({resource,record,onEdit,onMovement,searchQuery}:{resource:Resource;record:RecordData;onEdit:(record:RecordData)=>void;onMovement:(record:RecordData)=>void;searchQuery?:string}){
- const {session,open,notify}=useApp();const admin=session.user.role==='admin';const writable=canWrite(session,resource.key)&&(resource.key!=='calculations'||admin);const [messageError,setMessageError]=useState('');
+ const {session,open,notify}=useApp();const admin=session.user.role==='admin';const writable=canWrite(session,resource.key)&&!['meter_readings','maintenance_services'].includes(resource.key)&&(resource.key!=='calculations'||admin);const [messageError,setMessageError]=useState('');
  const [highlight,setHighlight]=useState(searchQuery||'');
  useEffect(()=>{setHighlight(searchQuery||'');if(!searchQuery)return;const frame=requestAnimationFrame(()=>document.querySelector('.dialog .search-match')?.scrollIntoView({block:'nearest',behavior:'auto'}));const timer=setTimeout(()=>setHighlight(''),6000);return()=>{cancelAnimationFrame(frame);clearTimeout(timer);};},[record.id,searchQuery]);
  const query=useQuery({queryKey:['record',resource.key,record.id],queryFn:()=>api<RecordData>(`/${resource.key}/${record.id}`),initialData:record,initialDataUpdatedAt:0});const row=query.data;

@@ -39,6 +39,23 @@ try {
     if (listed.items.length) assert.equal((await call('/' + resource.key + '/' + listed.items[0].id)).id, listed.items[0].id);
   }
   for (const path of ['/dashboard', '/calendar', '/insights?days=14', '/reports/summary', '/personal/summary', '/journal?day=2026-12-15', '/maintenance/overview', '/field-map', '/local-references', '/activity', '/knowledge/search?q=учеб', '/integrations', '/notifications', '/accounts', '/auth/profile', '/speech/jobs']) await call(path);
+  const accounts = await call('/accounts');
+  assert.deepEqual(accounts.resources, startup.meta.resources.map(({key, label}) => ({key, label})), 'account forms receive the permission resource catalogue');
+  const previewState = storage.getItem('state');
+  for (const provider of ['telegram', 'max']) {
+    const result = await call(`/notifications/${provider}/preview`, 'POST', {event: 'task_due', values: {title: '{date} Учебная задача', date: '2026-12-15', details: 'Проверка без отправки'}});
+    assert.equal(result.status, 'preview');
+    assert.equal(result.outbound_enabled, false);
+    assert.equal(result.recipient.id, '');
+    assert.equal(result.payload.method, 'POST');
+    assert.ok(result.text.includes('{date} Учебная задача'), 'template values are not interpreted recursively');
+    assert.ok(result.text.includes('2026-12-15'));
+    assert.equal(provider === 'telegram' ? result.payload.body.chat_id : result.payload.headers.Authorization, provider === 'telegram' ? '' : '[masked]');
+    await call(`/notifications/${provider}/preview`, 'POST', {event: 'unknown', values: {}}, 422);
+    await call(`/notifications/${provider}/preview`, 'POST', {event: 'task_due', values: {title: 'a'.repeat(4001)}}, 422);
+    await call(`/notifications/${provider}/preview`, 'POST', {event: 'task_due', values: {recipient_id: '123'}}, 422);
+  }
+  assert.equal(storage.getItem('state'), previewState, 'notification previews do not write state or delivery history');
   const crudStorage = new MemoryStorage(), crud = createPagesDemo(crudStorage, clock);
   for (const resource of startup.meta.resources) {
     const example = startup.bootstrap.lookups[resource.key][0] || (resource.key === 'messages' ? {task_id: null, recipient_id: startup.bootstrap.lookups.people[0].id, text: 'Учебный текст сообщения', status: 'draft'} : {});

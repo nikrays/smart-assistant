@@ -234,10 +234,23 @@ export function createPagesDemo(storage: Storage, now: () => Date = () => new Da
       } return state.navigation;
     }
     if (path === '/auth/profile' && method === 'GET') return {user: state.session!.user, permissions: state.session!.permissions};
-    if (path === '/accounts' && method === 'GET') return {...page([{...state.session!.user, permissions: state.session!.permissions, has_recovery_code: false}], params)};
+    if (path === '/accounts' && method === 'GET') return {...page([{...state.session!.user, permissions: state.session!.permissions, has_recovery_code: false}], params), resources: seed.meta.resources.map((resource: Row) => ({key: resource.key, label: resource.label}))};
     if (path.startsWith('/auth/') || path.startsWith('/accounts')) fault(422, 'Учётные записи и восстановление доступны в серверной версии. Не вводи реальные пароли в публичную демку.');
     if (path === '/integrations' && method === 'GET') return {...clone(seed.integrations), connections: [], batches: [], notice};
     if (path === '/notifications' && method === 'GET') return {...clone(seed.notifications), notice};
+    const notificationPreview = path.match(/^\/notifications\/(telegram|max)\/preview$/);
+    if (notificationPreview && method === 'POST') {
+      const channel = seed.notifications.channels.find((item: Row) => item.provider === notificationPreview[1]);
+      const event = seed.notifications.events.find((item: Row) => item.key === body.event), values = body.values ?? {};
+      if (!event || Object.keys(body).some(key => !['event', 'values'].includes(key))) fault(422, 'Выбери событие для предпросмотра.');
+      if (!values || typeof values !== 'object' || Array.isArray(values) || Object.entries(values).some(([key, value]) => !['title', 'date', 'details'].includes(key) || typeof value !== 'string' || value.length > 4000)) fault(422, 'Для предпросмотра доступны текстовые title, date, details.');
+      const text = channel.templates[body.event].replace(/\{(title|date|details)\}/g, (_match: string, key: string) => values[key] ?? '').trim();
+      if (!text || text.length > 4000) fault(422, 'Сообщение должно содержать от 1 до 4000 символов.');
+      const payload = channel.provider === 'telegram'
+        ? {method: 'POST', url: 'https://api.telegram.org/bot[masked]/sendMessage', headers: {'Content-Type': 'application/json'}, body: {chat_id: channel.recipient_id, text, link_preview_options: {is_disabled: true}}}
+        : {method: 'POST', url: 'https://platform-api2.max.ru/messages?' + new URLSearchParams({[channel.recipient_type === 'user' ? 'user_id' : 'chat_id']: channel.recipient_id}), headers: {Authorization: '[masked]', 'Content-Type': 'application/json'}, body: {text, notify: true}};
+      return {provider: channel.provider, event: body.event, recipient: {type: channel.recipient_type, id: channel.recipient_id}, text, payload, status: 'preview', outbound_enabled: false, notice};
+    }
     if (path === '/speech/jobs' && method === 'GET') return {items: []};
     if (path.startsWith('/speech') || path.startsWith('/integrations/') || path.startsWith('/notifications/')) fault(422, 'Подключения, распознавание голоса и отправка доступны в серверной версии. Публичная демка не хранит токены.');
     if (path === '/local-references') return {images: [{id: 'fields', title: 'Вымышленная схема полей', image_url: './demo-fields.svg'}]};
@@ -401,7 +414,7 @@ export function createPagesDemo(storage: Storage, now: () => Date = () => new Da
           if (draft!.base_version !== null && body.version !== undefined && body.version !== draft!.base_version) fault(409, 'Исходная запись черновика изменилась.');
         }
         const result = dispatch(method, path, url.searchParams, body), status = method === 'POST' && /^\/[a-z_]+$/.test(path) && state.records[path.slice(1)] ? 201 : 200;
-        if (method !== 'GET') {
+        if (method !== 'GET' && !/^\/notifications\/(telegram|max)\/preview$/.test(path)) {
           if (draft && key) { update(draft, {status: 'committed', data: {}, context: {}, title: ''}); state.receipts['draft:' + key] = {signature, result: clone(result), status}; }
           if (!path.startsWith('/drafts') && !['/navigation', '/preferences'].includes(path)) { const row = result as Row; state.activity.push({id: ++state.sequence, resource: path.split('/')[1], record_id: row?.id || 0, action: method, created_at: now().toISOString(), actor: 'Демо-директор', changes: {note: 'Локальное действие в учебной демке'}}); state.activity = state.activity.slice(-200); }
           try { storage.setItem('state', JSON.stringify(state)); } catch { fault(507, 'Память браузера заполнена или недоступна. Изменения не сохранены. Освободи место или скачай данные.'); }

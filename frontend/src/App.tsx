@@ -117,7 +117,7 @@ function Workspace({session,bootstrap,meta,theme,toggleTheme,notice}:{session:Se
    case'assistant':return <Assistant/>;
    case'calendar':return <CalendarPage/>;
    case'people':{const group=tabs('people',[['people','Сотрудники'],['timesheets','Табели']],'people');return <>{group.element}<RecordsPage key={group.value} resourceKey={group.value} description="Команда, рабочее время и связанные дела."/></>;}
-   case'farm':{const group=tabs('farm',[['assets','Объекты хозяйства'],['worklogs','Журнал работ']],'assets');return <>{admin?<a className="button field-scheme-link" href="#field-scheme">Схема полей</a>:null}{group.element}<RecordsPage key={group.value} resourceKey={group.value} description="Техника, поля, животные, ёмкости и история работ."/></>;}
+   case'farm':{const group=tabs('farm',[['assets','Объекты хозяйства'],['worklogs','Журнал работ']],'assets');return <>{admin?<div className="section-toolbar">{group.element}<a className="button field-scheme-link" href="#field-scheme">Схема полей</a></div>:group.element}<RecordsPage key={group.value} resourceKey={group.value} description="Техника, поля, животные, ёмкости и история работ."/></>;}
    case'projects':{const group=tabs('projects',[['projects','Проекты'],['experiments','Опыты'],['notes','Идеи и заметки']],'projects');return <>{group.element}<RecordsPage key={group.value} resourceKey={group.value} description="Развитие хозяйства, проверки гипотез и накопленный опыт."/></>;}
    case'calculations':return !admin?<RecordsPage resourceKey="calculations" title="Сохранённые расчёты" readOnly/>:<>{tabs('calculations',[['calculator','Калькуляторы'],['reports','Отчёты']],'calculator').element}{section.calculations==='reports'?<Reports/>:<Calculations/>}</>;
    case'reports':return <Reports/>;
