@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+<title id="title">Учебная схема полей</title><desc id="desc">Вымышленные участки для демонстрации. Это не кадастровая карта.</desc>
+<rect width="1200" height="760" rx="24" fill="#eef3e8"/>
+<path d="M-30 620 Q330 700 510 440 T1230 150" fill="none" stroke="#b9dced" stroke-width="46"/>
+<path d="M570 -20 640 780M-20 310 1220 460" fill="none" stroke="#fff" stroke-width="26"/>
+<path d="M570 -20 640 780M-20 310 1220 460" fill="none" stroke="#cbd4c2" stroke-width="2"/>
+<g fill="#dce8c7" stroke="#668458" stroke-width="3" stroke-linejoin="round">
+<path d="M70 80 280 80 280 270 70 245Z"/><path d="M310 80 520 80 535 305 310 270Z"/>
+<path d="M680 80 900 80 900 335 705 370Z"/><path d="M930 80 1120 80 1120 340 930 350Z"/>
+<path d="M75 380 285 400 285 570 75 560Z"/><path d="M320 405 530 430 455 590 320 605Z"/>
+<path d="M710 480 910 500 910 680 710 680Z"/><path d="M945 505 1120 520 1120 680 945 680Z"/>
+</g>
+<g font-family="Arial,sans-serif" font-size="24" font-weight="600" text-anchor="middle" fill="#344f34">
+<text x="175" y="175">Поле 1</text><text x="420" y="185">Поле 2</text><text x="800" y="200">Поле 3</text><text x="1025" y="200">Поле 4</text>
+<text x="180" y="490">Поле 5</text><text x="410" y="510">Поле 6</text><text x="810" y="600">Поле 7</text><text x="1030" y="610">Поле 8</text>
+</g><text x="68" y="715" font-family="Arial,sans-serif" font-size="20" fill="#526580">Вымышленная схема · без координат и расчёта площади</text>
+</svg>
