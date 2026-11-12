@@ -10,6 +10,6 @@ const root=createRoot(document.getElementById('root')!);
 async function start(){
  let Notice:ComponentType|null=null;
  if(staticDemo){const [demo,notice]=await Promise.all([import('./pagesDemo'),import('./PagesDemoNotice')]);await demo.installPagesDemo();Notice=notice.PagesDemoNotice;}
- root.render(<StrictMode><QueryClientProvider client={queryClient}>{Notice?<Notice/>:null}<App/></QueryClientProvider></StrictMode>);
+ root.render(<StrictMode><QueryClientProvider client={queryClient}><App notice={Notice?<Notice/>:null}/></QueryClientProvider></StrictMode>);
 }
 void start().catch(()=>root.render(<div className="boot-screen"><ErrorBox message="Не удалось открыть демонстрацию. Разреши хранение данных для сайта и обнови страницу." retry={()=>location.reload()}/></div>));

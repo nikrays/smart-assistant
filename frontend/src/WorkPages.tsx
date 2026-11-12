@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
+import { useId, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ArrowRight, CalendarDays, Check, ChevronLeft, ChevronRight, FileText, Mic, Plus, Search, Send, Sparkles } from 'lucide-react';
 import { api, dateText, numberText, overlapsMoscowDay, post, readableError, recordTitle, refresh, today } from './api';
@@ -17,31 +17,13 @@ export function Dashboard(){
  const {open,navigate,session}=useApp();
  const query=useQuery({queryKey:['dashboard',session.user.id,session.user.version],queryFn:()=>api<DashboardData>('/dashboard'),refetchInterval:60000});
  const insights=useQuery({queryKey:['insights',session.user.id,session.user.version,14],queryFn:()=>api<Insights>('/insights?days=14'),refetchInterval:60000});
- const board=useRef<HTMLDivElement>(null);
- useLayoutEffect(()=>{
-  const element=board.current;if(!element)return;
-  const layout=()=>{
-   const style=getComputedStyle(element),unit=parseFloat(style.gridAutoRows),gap=parseFloat(style.rowGap);
-   // Read all heights before changing spans so the grid only lays out once.
-   const cards=Array.from(element.children) as HTMLElement[];
-   const scale=parseFloat(getComputedStyle(element.closest('.app-shell')||element).getPropertyValue('zoom'))||1;
-   const spans=cards.map(card=>Number.isFinite(unit)?'span '+Math.ceil((card.getBoundingClientRect().height/scale+gap)/(unit+gap)):'');
-   for(const [index,card] of cards.entries()){
-    const span=spans[index];
-    if(card.style.gridRowEnd!==span)card.style.gridRowEnd=span;
-   }
-  };
-  let frame=0;const schedule=()=>{if(!frame)frame=requestAnimationFrame(()=>{frame=0;layout();});};
-  const observer=new ResizeObserver(schedule);observer.observe(element);for(const card of Array.from(element.children))observer.observe(card);layout();
-  return()=>{cancelAnimationFrame(frame);observer.disconnect();};
- },[query.data,insights.data,insights.error]);
  if(query.isLoading)return <Loading/>;
  if(query.error)return <ErrorBox message={readableError(query.error)} retry={()=>void query.refetch()}/>;
  const data=query.data!;const reorder=data.stock_reorder||[];const stocks=[...reorder,...data.low_stock.filter(stock=>!reorder.some(item=>item.id===stock.id))];
  const signals:[string,number,string][]=[['Просрочено',data.summary.overdue_tasks,'tasks'],['Ниже минимума',data.summary.low_stock,'stock'],['Пора заказать',data.summary.reorder_due||0,'stock'],['На согласовании',data.summary.pending_messages,'messages']];
  return <div className="dashboard-page"><PageHead title="Сегодня" actions={<><Button onClick={()=>open({resource:'worklogs',mode:'new',draft:{worked_on:today(),review_status:'draft'}})}>Записать работу</Button><Button variant="primary" onClick={()=>open({resource:'tasks',mode:'new',draft:{scope:'personal',status:'planned',priority:'normal',recurrence:'none'}})}><Plus size={17}/>Новая задача</Button></>}/><p className="dashboard-date">{new Intl.DateTimeFormat('ru-RU',{dateStyle:'full',timeZone:'Europe/Moscow'}).format(new Date())}</p>
  <nav className="attention-summary" aria-label="Требует внимания">{signals.map(([label,count,page])=><Button key={label} className={count?'attention-needed':''} onClick={()=>navigate(page)}><span>{label}</span><strong>{numberText(count)}</strong></Button>)}</nav>
- <div className="dashboard-board" ref={board}>{insights.isLoading?<Loading/>:insights.error?<ErrorBox message={readableError(insights.error)} retry={()=>void insights.refetch()}/>:insights.data?<><Panel className="dashboard-hours" title="Подтверждённые часы" action={<HelpHint label="Как считается сводка">{insights.data.notice}</HelpHint>}><div className="insight-total"><strong>{numberText(insights.data.totals.work_hours)} ч</strong><span>За 14 дней · {insights.data.totals.approved_worklogs} утверждённых работ</span></div><WorkHoursPlot points={insights.data.work_hours}/><div className="chart-range"><span>{dateText(insights.data.start)}</span><span>{dateText(insights.data.end)}</span></div><dl className="insight-counters"><div><dt>Завершено за 14 дней</dt><dd>{insights.data.totals.completed_tasks}</dd></div><div><dt>Открыто сейчас</dt><dd>{insights.data.totals.open_tasks}</dd></div></dl></Panel><Panel className="dashboard-maintenance" title="Регламенты ТО" action={<Button variant="text" onClick={()=>navigate('maintenance')}>Открыть</Button>}><MaintenancePlot values={insights.data.maintenance}/></Panel></>:null}
+ <div className="dashboard-board">{insights.isLoading?<Loading/>:insights.error?<ErrorBox message={readableError(insights.error)} retry={()=>void insights.refetch()}/>:insights.data?<><Panel className="dashboard-hours" title="Подтверждённые часы" action={<HelpHint label="Как считается сводка">{insights.data.notice}</HelpHint>}><div className="insight-total"><strong>{numberText(insights.data.totals.work_hours)} ч</strong><span>За 14 дней · {insights.data.totals.approved_worklogs} утверждённых работ</span></div><WorkHoursPlot points={insights.data.work_hours}/><div className="chart-range"><span>{dateText(insights.data.start)}</span><span>{dateText(insights.data.end)}</span></div><dl className="insight-counters"><div><dt>Завершено за 14 дней</dt><dd>{insights.data.totals.completed_tasks}</dd></div><div><dt>Открыто сейчас</dt><dd>{insights.data.totals.open_tasks}</dd></div></dl></Panel><Panel className="dashboard-maintenance" title="Регламенты ТО" action={<Button variant="text" onClick={()=>navigate('maintenance')}>Открыть</Button>}><MaintenancePlot values={insights.data.maintenance}/></Panel></>:null}
  <Panel className="dashboard-tasks" title="Ближайшие поручения" action={<Button variant="text" onClick={()=>navigate('tasks')}>{insights.data?'Все · '+insights.data.totals.open_tasks:'Все поручения'}</Button>}>{data.tasks.length?<RecordRows resource="tasks" items={data.tasks.slice(0,4)}/>:<Empty>Срочных поручений нет.</Empty>}</Panel>
  <Panel className="dashboard-calendar" title="Календарь" action={<Button variant="text" onClick={()=>navigate('calendar')}>Все события</Button>}>{data.upcoming.length?<div className="calendar-agenda">{data.upcoming.slice(0,4).map((event,index)=><div key={event.id||index}><CalendarDays size={16} aria-hidden/><span><strong>{event.title}</strong><small>{dateText(event.start)}{event.end&&event.end!==event.start?' - '+dateText(event.end):''}</small></span></div>)}</div>:<Empty>Ближайших событий нет.</Empty>}</Panel>
  <Panel className="dashboard-messages" title="На согласовании" action={<Button variant="text" onClick={()=>navigate('messages')}>Все · {data.summary.pending_messages}</Button>}>{data.pending_messages.length?<RecordRows resource="messages" items={data.pending_messages.slice(0,2)}/>:<Empty>Все подготовленные сообщения рассмотрены.</Empty>}</Panel>
